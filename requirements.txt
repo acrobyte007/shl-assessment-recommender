@@ -1,2 +1,8 @@
 fastapi
 uvicorn
+pinecone
+rank-bm25
+langchain
+langchain-mistralai
+langchain-google-genai
+python-dotenv
