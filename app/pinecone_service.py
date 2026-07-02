@@ -81,17 +81,15 @@ class PineconeService:
         top_k: int = 10,
         filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        self.initialize()
-
+        logger.info(f"Searching assessments in namespace '{namespace}' with top_k={top_k}")
         try:
             result = self._index.query(
                 namespace=namespace,
                 vector=query_vector,
                 top_k=top_k,
-                filter=filters,
                 include_metadata=True
             )
-
+            logger.info(f"Search result: {result}")
             matches = result.get("matches", [])
 
             assessments = []
@@ -123,94 +121,6 @@ class PineconeService:
             logger.error(f"Unexpected search error: {e}")
             raise
 
-    def search_by_assessment_name(
-        self,
-        namespace: str,
-        assessment_name: str,
-        top_k: int = 5
-    ) -> Dict[str, Any]:
-        self.initialize()
-
-        try:
-            result = self._index.query(
-                namespace=namespace,
-                vector=[0.0] * 384,
-                top_k=top_k,
-                filter={"name": {"$eq": assessment_name}},
-                include_metadata=True
-            )
-
-            matches = result.get("matches", [])
-            
-            assessments = []
-            for match in matches:
-                metadata = match.get("metadata", {})
-                assessments.append({
-                    "id": match.get("id", ""),
-                    "score": match.get("score", 0.0),
-                    **metadata
-                })
-
-            return {
-                "assessments": assessments,
-                "total_matches": len(assessments),
-                "namespace": namespace
-            }
-
-        except Exception as e:
-            logger.error(f"Search by name failed: {e}")
-            return {"assessments": [], "total_matches": 0}
-
-    def delete_assessment(
-        self,
-        namespace: str,
-        assessment_id: str
-    ) -> Dict[str, Any]:
-        self.initialize()
-
-        try:
-            self._index.delete(
-                namespace=namespace,
-                ids=[assessment_id]
-            )
-            logger.info(f"Deleted assessment: {assessment_id}")
-            return {"deleted": True, "id": assessment_id}
-        except Exception as e:
-            logger.error(f"Delete failed: {e}")
-            raise
-
-    def delete_by_filter(
-        self,
-        namespace: str,
-        filter_criteria: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        self.initialize()
-
-        try:
-            self._index.delete(
-                namespace=namespace,
-                filter=filter_criteria
-            )
-            logger.info(f"Deleted assessments with filter: {filter_criteria}")
-            return {"deleted": True, "filter": filter_criteria}
-        except Exception as e:
-            logger.error(f"Delete failed: {e}")
-            raise
-
-    def get_index_stats(self, namespace: Optional[str] = None) -> Dict[str, Any]:
-        self.initialize()
-
-        try:
-            stats = self._index.describe_index_stats()
-            return {
-                "total_vector_count": stats.total_vector_count,
-                "dimension": stats.dimension,
-                "index_fullness": stats.index_fullness,
-                "namespaces": stats.namespaces
-            }
-        except Exception as e:
-            logger.error(f"Failed to get stats: {e}")
-            raise
 
 
 pinecone_service = PineconeService()
